@@ -17,8 +17,7 @@ public class CorsConfig {
 			public void addCorsMappings(CorsRegistry registry) {
 				
 				registry.addMapping("/**")
-				.allowedOrigins("http://localhost:5173",
-						"https://shopkart-frontend-yd6e.vercel.app")
+				.allowedOrigins("https://shopkart-frontend-yd6e.vercel.app")
 				.allowedMethods("*")
 				.allowedHeaders("*");
 			}
