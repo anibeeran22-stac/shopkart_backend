@@ -19,7 +19,7 @@ public class CorsConfig {
 				registry.addMapping("/**")
 				.allowedOrigins(
 						"http://localhost:5173",
-						"https://shopkart-frontend-yd6e.vercel.app")
+						"https://shopkart-frontend-five.vercel.app/products")
 				.allowedMethods("*")
 				.allowedHeaders("*");
 			}
