@@ -1,15 +1,14 @@
 package com.shopkart.service.impl;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.shopkart.dto.UserRequest;
 import com.shopkart.dto.UserResponse;
 import com.shopkart.dto.UserUpdateRequest;
@@ -23,9 +22,13 @@ public class UserServiceImpl implements UserService{
 	
 	
 	private final UserRepository userRepository;
+	private final Cloudinary cloudinary;
 		
-	public UserServiceImpl(UserRepository userRepository) {
+	public UserServiceImpl(UserRepository userRepository,
+			Cloudinary cloudinary) {
+		
 		this.userRepository=userRepository;
+		this.cloudinary = cloudinary;
 
 	}
 	
@@ -169,7 +172,6 @@ public class UserServiceImpl implements UserService{
 		userRepository.delete(user);
 		
 	}
-	
 	@Override
 	public UserResponse uploadProfileImage(Long id, MultipartFile image) {
 
@@ -178,22 +180,16 @@ public class UserServiceImpl implements UserService{
 
 	    try {
 
-	        String fileName = image.getOriginalFilename();
-
-	        Path uploadPath = Paths.get("src/main/resources/static/profile");
-
-	        if (!Files.exists(uploadPath)) {
-	            Files.createDirectories(uploadPath);
-	        }
-
-	        Files.copy(
-	                image.getInputStream(),
-	                uploadPath.resolve(fileName),
-	                StandardCopyOption.REPLACE_EXISTING
+	        Map uploadResult = cloudinary.uploader().upload(
+	                image.getBytes(),
+	                ObjectUtils.asMap(
+	                        "folder", "profiles"
+	                )
 	        );
 
-	        // IMPORTANT
-	        user.setProfileImage(fileName);
+	        String imageUrl = uploadResult.get("secure_url").toString();
+
+	        user.setProfileImage(imageUrl);
 
 	        userRepository.save(user);
 
@@ -201,7 +197,7 @@ public class UserServiceImpl implements UserService{
 
 	    } catch (IOException e) {
 
-	        throw new RuntimeException("Image upload failed");
+	        throw new RuntimeException("Profile image upload failed");
 
 	    }
 

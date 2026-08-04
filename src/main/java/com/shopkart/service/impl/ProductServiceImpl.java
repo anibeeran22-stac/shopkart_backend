@@ -1,15 +1,14 @@
 package com.shopkart.service.impl;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.shopkart.dto.ProductRequest;
 import com.shopkart.dto.ProductResponse;
 import com.shopkart.entity.Category;
@@ -25,11 +24,16 @@ public class ProductServiceImpl implements ProductService {
 
 	public final ProductRepository productRepository;
 	private final CategoryRepository categoryRepository;
+	private final Cloudinary cloudinary;
 
 	// constructor
-	public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository) {
+	public ProductServiceImpl(
+			ProductRepository productRepository, 
+			CategoryRepository categoryRepository,
+			Cloudinary cloudinary) {
 		this.productRepository = productRepository;
 		this.categoryRepository = categoryRepository;
+		this.cloudinary=cloudinary;
 
 	}
 
@@ -39,32 +43,24 @@ public class ProductServiceImpl implements ProductService {
 	    Category category = categoryRepository.findById(request.getCategoryId())
 	            .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
 
-	    String fileName = null;
+
+	    String imageUrl = null;
 
 	    if (image != null && !image.isEmpty()) {
 
 	        try {
 
-	            // uploads folder project root-la create aagum
-	            Path uploadPath = Paths.get("uploads");
-
-	            if (!Files.exists(uploadPath)) {
-	                Files.createDirectories(uploadPath);
-	            }
-
-	            fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
-
-	            Files.copy(
-	                    image.getInputStream(),
-	                    uploadPath.resolve(fileName),
-	                    StandardCopyOption.REPLACE_EXISTING
+	            Map uploadResult = cloudinary.uploader().upload(
+	                    image.getBytes(),
+	                    ObjectUtils.emptyMap()
 	            );
 
-	            System.out.println("Image Saved Successfully : " + uploadPath.resolve(fileName));
+	            imageUrl = uploadResult.get("secure_url").toString();
 
 	        } catch (IOException e) {
-	            e.printStackTrace();
+
 	            throw new RuntimeException("Image Upload Failed");
+
 	        }
 
 	    }
@@ -76,7 +72,7 @@ public class ProductServiceImpl implements ProductService {
 	    product.setPrice(request.getPrice());
 	    product.setStock(request.getStock());
 	    product.setCategory(category);
-	    product.setImageUrl(fileName);
+	    product.setImageUrl(imageUrl);
 
 	    Product savedProduct = productRepository.save(product);
 
@@ -161,21 +157,14 @@ public class ProductServiceImpl implements ProductService {
 
 	        try {
 
-	            Path uploadPath = Paths.get("src/main/resources/static/images");
+	        	Map uploadResult = cloudinary.uploader().upload(
+	        	        image.getBytes(),
+	        	        ObjectUtils.emptyMap()
+	        	);
 
-	            if (!Files.exists(uploadPath)) {
-	                Files.createDirectories(uploadPath);
-	            }
-
-	            String fileName = image.getOriginalFilename();
-
-	            Files.copy(
-	                    image.getInputStream(),
-	                    uploadPath.resolve(fileName),
-	                    StandardCopyOption.REPLACE_EXISTING
-	            );
-
-	            product.setImageUrl(fileName);
+	        	product.setImageUrl(
+	        	        uploadResult.get("secure_url").toString()
+	        	);
 
 	        } catch (IOException e) {
 	            throw new RuntimeException("Image Upload Failed");
